@@ -1,73 +1,84 @@
-
-<!DOCTYPE html>
 <html lang="ja">
-	<head>
-		<title><%= htmlWebpackPlugin.options.title %></title>
-		<link rel="stylesheet" href="https://cdn.rawgit.com/Chalarangelo/mini.css/v3.0.1/dist/mini-default.min.css">
-		<script src="https://cdn.jsdelivr.net/npm/@open-ayame/ayame-web-sdk@2020.2.1/dist/ayame.js"></script>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.7.0/qs.min.js"></script>
-		<script src="main.js"></script>
-	</head>
-	<body>
-		<div class="container" style="padding-bottom: 80px;">
-		<div>
-			<p>
-				ルームID
-				<input id="roomIdInput" type="text" value=""></input>
-			</p>
-			<p>
-				クライアントID
-				<input id="clientIdInput" disabled type="text" value=""></input>
-			</p>
-			<p>
-				映像コーデック
-				<select id="video-codec" onChange="onChangeVideoCodec();">
-				<option value="none">none</option>
-				<option value="H264">H264</option>
-				<option value="VP8">VP8</option>
-				<option value="VP9">VP9</option>
-				</select>
-				（Google Chrome、Microsoft Edge でのみで動作します）
-			</p>
-			<button onclick="startConn()">接続</button>
-			<button onclick="disconnect()">切断</button>
-		</div>
-		<div style="float:left;">
-			<video id="remote-video" autoplay playsinline controls style="width: 400px; height: 300px; border: 1px solid black;"></video>
-		</div>
-		<script type="text/javascript">
-			const signalingUrl = "wss://ayame-labo.shiguredo.jp/signaling";
-			const options = Ayame.defaultOptions;
-			options.clientId = clientId ? clientId : options.clientId;
-			if (signalingKey) {
-				options.signalingKey = signalingKey;
-			}
-			options.video.direction = 'recvonly';
-			options.audio.direction = 'recvonly';
-			const remoteVideo = document.querySelector('#remote-video');
-			let conn;
-			const disconnect = () => {
-				if (conn) {
-				conn.disconnect();
+    <head>
+        <meta charset="utf-8">
+        <title>Ayame DataChannel Sample</title>
+        <link rel="stylesheet" href="https://cdn.rawgit.com/Chalarangelo/mini.css/v3.0.1/dist/mini-default.min.css">
+    </head>
+    <body>
+      <header class="sticky row">
+        <h4>Ayame DataChannel Sample</h4>
+      </header>
+      <div>
+        <p>ルームID
+        <input id="roomIdInput" type="text" value=""></input>
+        </p>
+        <p>クライアントID
+        <input id="clientIdInput" disabled type="text" value=""></input>
+        </p>
+        <button onclick="startConn();">接続</button>
+        <button onclick="disconnect();">切断</button>
+        <p> 送信するメッセージ
+        <input id="sendDataInput" type="text" value="🐶"></input>
+        </p>
+        <button onclick="sendData();">送信</button>
+        <p> 受信したメッセージ </p>
+        <textarea style="height:200px;" id="messages" disabled type="text" value=""></textarea>
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/@open-ayame/ayame-web-sdk@2020.3.0/dist/ayame.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.7.0/qs.min.js"></script>
+      <script src="./main.js"></script>
+      <script type="text/javascript">
+        const options = Ayame.defaultOptions;
+        options.clientId = clientId ? clientId : options.clientId;
+        if (signalingKey) {
+          options.signalingKey = signalingKey;
+        }
+        let conn;
+        const disconnect = () => {
+          if (conn) {
+            conn.disconnect();
+          }
+        }
+        let dataChannel = null;
+        const label = 'dataChannel';
+        const startConn = async () => {
+			conn = Ayame.connection('wss://ayame-labo.shiguredo.jp/signaling', roomId, options, true);
+			conn.on('open', async (e) => {
+				dataChannel = await conn.createDataChannel(label);
+				dataChannel.binaryType = "arraybuffer";
+				if (dataChannel) {
+					dataChannel.onmessage = onMessage;
 				}
+			});
+			conn.on('datachannel', (channel) => {
+				if (!dataChannel) {
+					dataChannel = channel;
+					dataChannel.onmessage = onMessage;
+				}
+			});
+			conn.on('disconnect', (e) => {
+				console.log(e);
+				dataChannel = null;
+			});
+			await conn.connect(null);
+        };
+        const sendData = () => {
+			const data = document.querySelector("#sendDataInput").value;
+			if (dataChannel && dataChannel.readyState === 'open') {
+				let array = new Uint8Array(2);
+				array[0] = 0xFF;
+				array[1] = 0xF0;
+				dataChannel.send(array);
 			}
-			const startConn = async () => {
-				options.video.codec = videoCodec;
-				conn = Ayame.connection(signalingUrl, roomId, options, true);
-				await conn.connect(null);
-				conn.on('open', ({authzMetadata}) => console.log(authzMetadata));
-				conn.on('disconnect', (e) => {
-					console.log(e);
-					remoteVideo.srcObject = null;
-				});
-				conn.on('addstream', (e) => {
-					remoteVideo.srcObject = e.stream;
-				});
-			};
-			document.querySelector("#roomIdInput").value = roomId;
-			document.querySelector("#clientIdInput").value = options.clientId;
-		</script>
-	</div>
-	</body>
+        };
+        document.querySelector("#roomIdInput").value = roomId;
+        document.querySelector("#clientIdInput").value = options.clientId;
+
+        function onMessage(e) {
+          const messages = document.querySelector("#messages").value;
+          newMessages = messages ? (messages + '\n' + e.data) : e.data;
+          document.querySelector("#messages").value = newMessages;
+        }
+      </script>
+  </body>
 </html>
