@@ -1,3 +1,8 @@
+'use strict';
+
+import { connection } from '@open-ayame/ayame-web-sdk';
+import { defaultOptions } from '@open-ayame/ayame-web-sdk';
+
 let roomId = '';
 let clientId = null;
 let videoCodec = null;
@@ -38,8 +43,69 @@ window.onload = function() {
 	});
 };
 
-window.onChangeVideoCodec = onChangeVideoCodec;
-window.roomId = roomId;
-window.clientId = clientId;
-window.signalingKey = signalingKey;
-window.videoCodec = videoCodec;
+const options = defaultOptions;
+options.clientId = clientId ? clientId : options.clientId;
+if (signalingKey) {
+	options.signalingKey = signalingKey;
+}
+let conn;
+const disconnect = () => {
+	if (conn) {
+		conn.disconnect();
+	}
+}
+let dataChannel = null;
+const label = 'dataChannel';
+const startConn = async () => {
+	conn = connection('wss://ayame-labo.shiguredo.jp/signaling', roomId, options, true);
+	conn.on('open', async (e) => {
+		dataChannel = await conn.createDataChannel(label);
+		dataChannel.binaryType = "arraybuffer";
+		if (dataChannel) {
+			dataChannel.onmessage = onMessage;
+		}
+	});
+	conn.on('datachannel', (channel) => {
+		if (!dataChannel) {
+			dataChannel = channel;
+			dataChannel.onmessage = onMessage;
+		}
+	});
+	conn.on('disconnect', (e) => {
+		console.log(e);
+		dataChannel = null;
+	});
+	await conn.connect(null);
+};
+const sendData = () => {
+	const data = document.querySelector("#sendDataInput").value;
+	if (dataChannel && dataChannel.readyState === 'open') {
+		let array = new Uint8Array(13);
+		array[0]  = 0xFF;
+		array[1]  = 0xFF;
+		array[2]  = 0xFD;
+		array[3]  = 0x00;
+		array[4]  = 0x01;
+		array[5]  = 0x06;
+		array[6]  = 0x00;
+		array[7]  = 0x03;
+		array[8]  = 0x41;
+		array[9]  = 0x00;
+		array[10] = 0x01;
+		array[11] = 0xCC;
+		array[12] = 0xE6;
+		dataChannel.send(array);
+	}
+};
+document.querySelector("#roomIdInput").value = roomId;
+document.querySelector("#clientIdInput").value = options.clientId;
+
+function onMessage(e) {
+	const messages = document.querySelector("#messages").value;
+	newMessages = messages ? (messages + '\n' + e.data) : e.data;
+	document.querySelector("#messages").value = newMessages;
+}
+
+window.startConn = startConn;
+window.disconnect = disconnect;
+window.sendData = sendData;
