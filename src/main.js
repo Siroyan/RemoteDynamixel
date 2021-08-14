@@ -84,26 +84,14 @@ const startConn = async () => {
 		remoteVideo.srcObject = null;
 	});
 };
-const sendData = () => {
+
+function sendData(array) {
 	const data = document.querySelector("#sendDataInput").value;
 	if (dataChannel && dataChannel.readyState === 'open') {
-		let array = new Uint8Array(13);
-		array[0]  = 0xFF;
-		array[1]  = 0xFF;
-		array[2]  = 0xFD;
-		array[3]  = 0x00;
-		array[4]  = 0x01;
-		array[5]  = 0x06;
-		array[6]  = 0x00;
-		array[7]  = 0x03;
-		array[8]  = 0x41;
-		array[9]  = 0x00;
-		array[10] = 0x01;
-		array[11] = 0xCC;
-		array[12] = 0xE6;
 		dataChannel.send(array);
 	}
-};
+}
+
 document.querySelector("#roomIdInput").value = roomId;
 document.querySelector("#clientIdInput").value = options.clientId;
 
@@ -111,6 +99,39 @@ function onMessage(e) {
 	const messages = document.querySelector("#messages").value;
 	newMessages = messages ? (messages + '\n' + e.data) : e.data;
 	document.querySelector("#messages").value = newMessages;
+}
+
+let prevSendTime = 0;
+document.onkeydown = (e) => {
+	if (new Date().getTime() - prevSendTime > 100) {
+		prevSendTime = new Date().getTime();
+		if (e.key === 'w') {
+			console.log('w');
+			let array = new Uint8Array(13);
+			array[0]  = 0xFF;
+			array[1]  = 0xFF;
+			array[2]  = 0xFD;
+			array[3]  = 0x00;
+			array[4]  = 0x01;
+			array[5]  = 0x06;
+			array[6]  = 0x00;
+			array[7]  = 0x03;
+			array[8]  = 0x41;
+			array[9]  = 0x00;
+			array[10] = 0x01;
+			array[11] = 0xCC;
+			array[12] = 0xE6;
+			sendData(array);
+		} else if (e.key === 'a') {
+			console.log('a');
+			
+		} else if (e.key === 's') {
+			console.log('s');
+			
+		} else if (e.key === 'd') {
+			console.log('d');
+		}
+	}
 }
 
 window.startConn = startConn;
