@@ -6,7 +6,6 @@ import { defaultOptions } from '@open-ayame/ayame-web-sdk';
 let roomId = '';
 let clientId = null;
 let videoCodec = null;
-let audioCodec = null;
 let signalingKey = '';
 
 function onChangeVideoCodec() {
@@ -48,6 +47,9 @@ options.clientId = clientId ? clientId : options.clientId;
 if (signalingKey) {
 	options.signalingKey = signalingKey;
 }
+options.video.direction = 'recvonly';
+options.audio.direction = 'recvonly';
+const remoteVideo = document.querySelector('#remote-video');
 let conn;
 const disconnect = () => {
 	if (conn) {
@@ -57,6 +59,7 @@ const disconnect = () => {
 let dataChannel = null;
 const label = 'dataChannel';
 const startConn = async () => {
+	options.video.codec = videoCodec;
 	conn = connection('wss://ayame-labo.shiguredo.jp/signaling', roomId, options, true);
 	conn.on('open', async (e) => {
 		dataChannel = await conn.createDataChannel(label);
@@ -71,11 +74,15 @@ const startConn = async () => {
 			dataChannel.onmessage = onMessage;
 		}
 	});
+	await conn.connect(null);
+	conn.on('addstream', (e) => {
+		remoteVideo.srcObject = e.stream;
+	});
 	conn.on('disconnect', (e) => {
 		console.log(e);
 		dataChannel = null;
+		remoteVideo.srcObject = null;
 	});
-	await conn.connect(null);
 };
 const sendData = () => {
 	const data = document.querySelector("#sendDataInput").value;
@@ -109,3 +116,4 @@ function onMessage(e) {
 window.startConn = startConn;
 window.disconnect = disconnect;
 window.sendData = sendData;
+window.onChangeVideoCodec = onChangeVideoCodec;
