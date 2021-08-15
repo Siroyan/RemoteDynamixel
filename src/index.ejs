@@ -1,73 +1,85 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-	<head>
-		<title><%= htmlWebpackPlugin.options.title %></title>
-		<link rel="stylesheet" href="https://cdn.rawgit.com/Chalarangelo/mini.css/v3.0.1/dist/mini-default.min.css">
-		<script src="https://cdn.jsdelivr.net/npm/@open-ayame/ayame-web-sdk@2020.2.1/dist/ayame.js"></script>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.7.0/qs.min.js"></script>
-		<script src="main.js"></script>
-	</head>
-	<body>
-		<div class="container" style="padding-bottom: 80px;">
-		<div>
-			<p>
-				ルームID
-				<input id="roomIdInput" type="text" value=""></input>
-			</p>
-			<p>
-				クライアントID
-				<input id="clientIdInput" disabled type="text" value=""></input>
-			</p>
-			<p>
-				映像コーデック
-				<select id="video-codec" onChange="onChangeVideoCodec();">
-				<option value="none">none</option>
-				<option value="H264">H264</option>
-				<option value="VP8">VP8</option>
-				<option value="VP9">VP9</option>
-				</select>
-				（Google Chrome、Microsoft Edge でのみで動作します）
-			</p>
-			<button onclick="startConn()">接続</button>
-			<button onclick="disconnect()">切断</button>
-		</div>
-		<div style="float:left;">
-			<video id="remote-video" autoplay playsinline controls style="width: 400px; height: 300px; border: 1px solid black;"></video>
-		</div>
-		<script type="text/javascript">
-			const signalingUrl = "wss://ayame-labo.shiguredo.jp/signaling";
-			const options = Ayame.defaultOptions;
-			options.clientId = clientId ? clientId : options.clientId;
-			if (signalingKey) {
-				options.signalingKey = signalingKey;
-			}
-			options.video.direction = 'recvonly';
-			options.audio.direction = 'recvonly';
-			const remoteVideo = document.querySelector('#remote-video');
-			let conn;
-			const disconnect = () => {
-				if (conn) {
-				conn.disconnect();
-				}
-			}
-			const startConn = async () => {
-				options.video.codec = videoCodec;
-				conn = Ayame.connection(signalingUrl, roomId, options, true);
-				await conn.connect(null);
-				conn.on('open', ({authzMetadata}) => console.log(authzMetadata));
-				conn.on('disconnect', (e) => {
-					console.log(e);
-					remoteVideo.srcObject = null;
-				});
-				conn.on('addstream', (e) => {
-					remoteVideo.srcObject = e.stream;
-				});
-			};
-			document.querySelector("#roomIdInput").value = roomId;
-			document.querySelector("#clientIdInput").value = options.clientId;
-		</script>
-	</div>
-	</body>
+    <head>
+      <meta charset="utf-8">
+      <title>Remote Dynamixel</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+      <style>
+        body{
+          /* font-family: "M PLUS Rounded 1c"; */
+          font-family: 'Bree Serif', 'Kosugi Maru', sans-serif;
+        }
+      </style>
+    </head>
+    <body class="bg-light">
+      <header>
+        <div class="container">
+          <nav class="navbar navbar-expand-lg navbar-light bg-light py-3">
+            <a href="index.html" class="navbar-brand">Remote Dynamixel</a>
+            <button class="navbar-toggler" data-toggle="collapse" data-target="#menu">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          </nav>
+        </div><!-- .container -->
+        </div><!-- .header-content -->
+      </header>
+      <main>
+        <section class="py-2">
+          <div class="container text-center">
+            <video class="video-fluid w-100" id="remote-video" autoplay playsinline></video>
+          </div>
+        </section>
+
+        <section class="py-2">
+          <div class="container text-center">
+            <button class="btn btn-primary btn-lg" onclick="startConn();">接続</button>
+            <button class="btn btn-outline-primary btn-lg" onclick="disconnect();">切断</button>
+          </div>
+        </section>
+
+        <section class="py-3">
+          <div class="container">
+            <h4 class="mb-3"><span style="background: linear-gradient(transparent 80%, #ccc 80%);">動作情報</span></h4>
+            <div class="row">
+              <div class="col-md-4 mb-2">
+                <label for="roomIdInput" class="form-label">ルームID</label>
+                <input type="text" class="form-control" id="roomIdInput" disabled>
+              </div>
+              <div class="col-md-4 mb-2">
+                <label for="clientIdInput" class="form-label">クライアントID</label>
+                <input type="text" class="form-control" id="clientIdInput" disabled>
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="video-codec" class="form-label">映像コーデック</label>
+                <select class="form-select" id="video-codec" onChange="onChangeVideoCodec();">
+                  <option value="none">none</option>
+                  <option value="VP8">VP8</option>
+                  <option value="VP9">VP9</option>
+                  <option value="AV1X">AV1</option>
+                  <option value="H264">H264</option>
+                  <option value="H265">H265</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="py-4">
+          <div class="container">
+            <h4 class="mb-3"><span style="background: linear-gradient(transparent 80%, #ccc 80%);">送信メッセージ</span></h4>
+            <textarea class="form-control" placeholder="Send data here" id="sendDataInput" style="height: 100px" disabled></textarea>
+          </div>
+        </section>
+
+        <section class="py-4">
+          <div class="container">
+            <h4 class="mb-3"><span style="background: linear-gradient(transparent 80%, #ccc 80%);">受信メッセージ</span></h4>
+            <textarea class="form-control" placeholder="Recieved message here" id="messages" style="height: 100px" disabled></textarea>
+          </div>
+        </section>
+      </main>
+      <script src="https://cdn.jsdelivr.net/npm/@open-ayame/ayame-web-sdk@2020.3.0/dist/ayame.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.7.0/qs.min.js"></script>
+      <script src="./main.js"></script>
+  </body>
 </html>
