@@ -3,6 +3,8 @@
 import { connection } from '@open-ayame/ayame-web-sdk';
 import { defaultOptions } from '@open-ayame/ayame-web-sdk';
 
+import {torqueOn, drive, stop} from './dynamixel-packet';
+
 let roomId = '';
 let clientId = null;
 let videoCodec = null;
@@ -77,8 +79,13 @@ const startConn = async () => {
 	});
 	await conn.connect(null);
 };
+<<<<<<< Updated upstream
 const sendData = () => {
 	const data = document.querySelector("#sendDataInput").value;
+=======
+
+function sendData(array) {
+>>>>>>> Stashed changes
 	if (dataChannel && dataChannel.readyState === 'open') {
 		let array = new Uint8Array(13);
 		array[0]  = 0xFF;
@@ -105,6 +112,39 @@ function onMessage(e) {
 	newMessages = messages ? (messages + '\n' + e.data) : e.data;
 	document.querySelector("#messages").value = newMessages;
 }
+
+let inputKeyBuffer = new Array();
+
+document.onkeydown = (e) => {
+	inputKeyBuffer[e.key] = true;
+};
+
+document.onkeyup = (e) => {
+	inputKeyBuffer[e.key] = false;
+};
+
+const command = function() {
+	sendData(torqueOn(0x01));
+	sendData(torqueOn(0x02));
+	if (inputKeyBuffer['w']) {
+		sendData(drive(0x01, 100));
+		sendData(drive(0x02, -100));
+	} else if (inputKeyBuffer['a']) {
+		sendData(drive(0x01, 100));
+		sendData(drive(0x02, 100));
+	} else if (inputKeyBuffer['s']) {
+		sendData(drive(0x01, -100));
+		sendData(drive(0x02, 100));
+	} else if (inputKeyBuffer['d']) {
+		sendData(drive(0x01, -100));
+		sendData(drive(0x02, -100));
+	} else {
+		sendData(drive(0x01, 0));
+		sendData(drive(0x02, 0));
+	}
+}
+
+setInterval(command, 50);
 
 window.startConn = startConn;
 window.disconnect = disconnect;
