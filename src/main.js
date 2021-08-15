@@ -87,7 +87,7 @@ const startConn = async () => {
 	});
 };
 
-const sendData = () => {
+const sendData = (array) => {
 	if (dataChannel && dataChannel.readyState === 'open') {
 		dataChannel.send(array);
 	}
@@ -103,7 +103,6 @@ function onMessage(e) {
 }
 
 let inputKeyBuffer = new Array();
-
 document.onkeydown = (e) => {
 	inputKeyBuffer[e.key] = true;
 };
